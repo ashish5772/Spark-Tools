@@ -1,0 +1,60 @@
+import random as rd
+import datetime as dt
+from itertools import permutations
+def fn(collist_with_type,rows, nondupcols):
+  rowls = []
+  ls_src_chars = [chr(i) for i in list(range(32,127))]
+  ls_special_char = [chr(i) for i in list(range(33,48))+list(range(58,65))+list(range(91,97))+list(range(123,127))]
+  ls_no_special_chars = [i for i in ls_src_chars if i not in [j for j in ls_special_char]]
+  for i in range(rows):
+    datals = '('
+    for colname,coltype in collist_with_type:
+      if coltype.lower() == "boolean":
+        datals+=(rd.choice(['True','False']))+','
+      elif coltype.lower() == "int" or 'decimal' in coltype.lower():
+        datals+=('cast("'+str(rd.choice(range(1,100000)))+'" as int)')+','
+      elif coltype.lower() == "timestamp":
+        start = dt.datetime.now()+dt.timedelta(days = -10000)
+        delta = dt.datetime.now() - start
+        int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+        random_second = rd.randrange(int_delta)
+        datals+=('cast("'+str(start + dt.timedelta(seconds=random_second))+'" as datetime)')+','
+      elif coltype.lower() == "date":
+        start = dt.datetime.now()+dt.timedelta(days = -10000)
+        delta = dt.datetime.now() - start
+        int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+        random_second = rd.randrange(int_delta)
+        datals+=('cast("'+str(start + dt.timedelta(seconds=random_second))[:11]+'" as date)')+','
+      else:#coltype.lower() == "string"
+        length = rd.choice(list(range(1,100)))
+        rd.shuffle(ls_no_special_chars)
+        datals+=('"'+''.join(ls_no_special_chars[:length])+'"')+','
+    rowls.append(datals.strip(',')+'),')
+  return rowls
+  
+  collist = [
+('stats_param','string'),
+('brnd_cd','string'),
+('lgcy_sto_nbr','string'),
+('func_cd','string'),
+('proj_dt','date'),
+('nbr_of_hrs','decimal(18),2'),
+('rgn_cd','string'),
+('rgn_desc','string'),
+('dist_cd','string'),
+('dist_desc','string'),
+('loc_nbr','string'),
+('loc_dsply_nme','string'),
+('wk_end_dt','date'),
+('day_of_wk','string'),
+('day_of_wk_shrt','string'),
+('wk_nbr','int'),
+('fiscl_wk_strt_dt','date'),
+('fiscl_wk_end_dt','date'),
+ ('snapshot_dt', 'date')
+]
+
+res = fn(collist,200000,[])
+
+spark.sql('insert into aces_store_labour_projections values'+''.join(res).strip(',').strip("'"))
+ 
